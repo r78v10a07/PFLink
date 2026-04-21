@@ -1,8 +1,8 @@
-
 import argparse
 import sys
 from rich_argparse import RichHelpFormatter
 import os
+import yaml
 
 from HXMS_IO import HxmsData
 from Helper_Functions import combine_hxms_data
@@ -20,30 +20,58 @@ def main():
         formatter_class=lambda prog: RichHelpFormatter(prog, max_help_position=200, width=400)
     )
 
-    parser = argparse.ArgumentParser(
-        description="Process raw H/D exchange mass spectrometry data into HXMS file format.")
-
-
-    parser.add_argument("--input_hxms_path1", type=str, required=True,
+    parser.add_argument("--input_hxms_path1", type=str, required=False,
                         help="Path to the file1 containing the.hmxs data")
-    parser.add_argument("--input_hxms_path2", type=str, required=True,
+    parser.add_argument("--input_hxms_path2", type=str, required=False,
                         help="Path to the file2 containing the.hmxs data")
-    parser.add_argument("--output_hxms_path", type=str, required=True,
+    parser.add_argument("--output_hxms_path", type=str, required=False,
                         help="Path to the output directory where the final .hxms files will be saved.")
-    
+    parser.add_argument("--config_yml",
+                        type=str,
+                        required=False,
+                        help="Path to YAML config file with all parameters.")
+
+    # Config YML Example:
+
+    # input_hxms_path1: "/path/to/file1.hxms"
+    # input_hxms_path2: "/path/to/file2.hxms"
+    # output_hxms_path: "/path/to/output_dir"
+
     args = parser.parse_args()
 
-    INPUT_PATH1 = args.input_hxms_path1
-    INPUT_PATH2 = args.input_hxms_path1
-    OUTPUT_PATH = args.output_hxms_path
+    config = {}
+    if args.config_yml:
+        if not os.path.isfile(args.config_yml):
+            print(f"{RED}Error: Config file '{args.config_yml}' does not exist!{RESET}")
+            sys.exit(1)
+        try:
+            with open(args.config_yml, "r") as f:
+                config = yaml.safe_load(f) or {}
+        except Exception as e:
+            print(f"{RED}Error reading YAML config: {e}{RESET}")
+            sys.exit(1)
 
-    if not os.path.isfile(INPUT_PATH1):
+    INPUT_PATH1 = args.input_hxms_path1 or config.get("input_hxms_path1")
+    INPUT_PATH2 = args.input_hxms_path2 or config.get("input_hxms_path2")
+    OUTPUT_PATH = args.output_hxms_path or config.get("output_hxms_path")
+
+    if INPUT_PATH1 is None:
+        print(f"{RED}Error: input_hxms_path1 must be provided (CLI or YAML){RESET}")
+        sys.exit(1)
+    if INPUT_PATH2 is None:
+        print(f"{RED}Error: input_hxms_path2 must be provided (CLI or YAML){RESET}")
+        sys.exit(1)
+    if OUTPUT_PATH is None:
+        print(f"{RED}Error: output_hxms_path must be provided (CLI or YAML){RESET}")
+        sys.exit(1)
+
+    if INPUT_PATH1 is None or not os.path.isfile(INPUT_PATH1):
         print(f"{RED}Error: Your input path '{INPUT_PATH1}' does not exist or is not a file! Please correct it and run again.{RESET}")
         sys.exit(1)
-    if not os.path.isfile(INPUT_PATH2):
+    if INPUT_PATH2 is None or not os.path.isfile(INPUT_PATH2):
         print(f"{RED}Error: Your input path '{INPUT_PATH2}' does not exist or is not a file! Please correct it and run again.{RESET}")
         sys.exit(1)
-    if not os.path.isdir(OUTPUT_PATH):
+    if OUTPUT_PATH is None or not os.path.isdir(OUTPUT_PATH):
         print(f"{RED}Error: Your output path '{OUTPUT_PATH}' does not exist or is not a directory! Please correct it and run again.{RESET}")
         sys.exit(1)
 

@@ -2,6 +2,7 @@ import os
 import sys
 import argparse
 from rich_argparse import RichHelpFormatter
+import yaml
 
 from HXMS_IO import write_hxms_file
 from Parsers import FlagsParser, _parse_dynamX, _parse_HDXWorkbench, _parse_biopharma, _parse_HDExaminer, \
@@ -13,24 +14,18 @@ RESET = "\033[0m"
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Process HX-MS data.",
+        description="Process raw H/D exchange mass spectrometry data into HXMS file format.",
         formatter_class=lambda prog: RichHelpFormatter(prog, max_help_position=200, width=400)
     )
 
-    parser = argparse.ArgumentParser(
-        description="Process raw H/D exchange mass spectrometry data into HXMS file format.")
-
-
-    parser.add_argument("--input_csv_path", type=str, required=True,
+    parser.add_argument("--input_csv_path", type=str, required=False,
                         help="Path to the file containing the raw input CSV/data files.")
-    parser.add_argument("--output_hxms_path", type=str, required=True,
+    parser.add_argument("--output_hxms_path", type=str, required=False,
                         help="Path to the output directory where the final .hxms files will be saved.")
     parser.add_argument("--flags_file_path", type=str, required=False,
                         help="Path to a flags or configuration file to override default settings.")
     parser.add_argument("--peptide_list", type=str, required=False,
                         help="Path to a CSV file containing a list of peptides to filter or process.")
-
-
     parser.add_argument("--saturation", type=float, required=False,
                         help="The D2O saturation percentage (0.0 to 1.0) to record in the file header.")
     parser.add_argument("--ph", type=float, required=False,
@@ -58,18 +53,58 @@ def main():
                         default=None,
                         help="Input CSV format type")
 
+    parser.add_argument("--config_yml",
+                        type=str,
+                        required=False,
+                        help="Path to a YAML configuration file containing all parameters.")
+    # Config YML Example:
+
+    # input_csv_path: data / input.csv
+    # output_hxms_path: results /
+    # flags_file_path: null
+    # peptide_list: peptides.csv
+    # saturation: 0.6
+    # ph: 7.2
+    # temperature: 293.5
+    # protein_name: MyProtein
+    # protein_state: Apo
+    # protein_sequence: AAGWDGA
+    # file_type: HDXworkbench
+    # include_exclude: include
+
     args = parser.parse_args()
 
-    INPUT_PATH = args.input_csv_path
-    OUTPUT_PATH = args.output_hxms_path
-    FLAGS_PATH = args.flags_file_path
-    PEPTIDE_LIST_PATH = args.peptide_list
+    # Load configuration from YAML if provided
+    config = {}
+    if args.config_yml:
+        if not os.path.isfile(args.config_yml):
+            print(f"{RED}Error: Config file '{args.config_yml}' does not exist!{RESET}")
+            sys.exit(1)
+        try:
+            with open(args.config_yml, "r") as f:
+                config = yaml.safe_load(f) or {}
+        except Exception as e:
+            print(f"{RED}Error reading YAML config: {e}{RESET}")
+            sys.exit(1)
 
-    if not os.path.isfile(INPUT_PATH):
+    INPUT_PATH = args.input_csv_path or config.get("input_csv_path")
+    OUTPUT_PATH = args.output_hxms_path or config.get("output_hxms_path")
+    FLAGS_PATH = args.flags_file_path or config.get("flags_file_path")
+    PEPTIDE_LIST_PATH = args.peptide_list or config.get("peptide_list")
+
+    # Validate required parameters after merging CLI and YAML
+    if INPUT_PATH is None:
+        print(f"{RED}Error: 'input_csv_path' must be provided via CLI or YAML.{RESET}")
+        sys.exit(1)
+    if OUTPUT_PATH is None:
+        print(f"{RED}Error: 'output_hxms_path' must be provided via CLI or YAML.{RESET}")
+        sys.exit(1)
+
+    if INPUT_PATH is None or not os.path.isfile(INPUT_PATH):
         print(f"{RED}Error: Your input path '{INPUT_PATH}' does not exist or is not a file! Please correct it and run again.{RESET}")
         sys.exit(1)
 
-    if not os.path.isdir(OUTPUT_PATH):
+    if OUTPUT_PATH is None or not os.path.isdir(OUTPUT_PATH):
         print(f"{RED}Error: Your output path '{OUTPUT_PATH}' does not exist or is not a directory! Please correct it and run again.{RESET}")
         sys.exit(1)
 
@@ -143,13 +178,13 @@ def main():
 
 
     else:
-        saturation = args.saturation
-        ph = args.ph
-        temperature = args.temperature
-        protein_name = args.protein_name
-        protein_state = args.protein_state
-        protein_sequence = args.protein_sequence
-        file_type = args.file_type
+        saturation = args.saturation or config.get("saturation")
+        ph = args.ph or config.get("ph")
+        temperature = args.temperature or config.get("temperature")
+        protein_name = args.protein_name or config.get("protein_name")
+        protein_state = args.protein_state or config.get("protein_state")
+        protein_sequence = args.protein_sequence or config.get("protein_sequence")
+        file_type = args.file_type or config.get("file_type")
         if saturation is None:
             print("You must provide a saturation value!")
             exit()
@@ -181,7 +216,7 @@ def main():
         }
     include_exclude = None
     if PEPTIDE_LIST_PATH:
-        include_exclude = args.include_exclude
+        include_exclude = args.include_exclude or config.get("include_exclude")
         if include_exclude == "include":
             include_exclude = True
         else:
