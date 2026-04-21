@@ -95,9 +95,11 @@ def main():
     # Validate required parameters after merging CLI and YAML
     if INPUT_PATH is None:
         print(f"{RED}Error: 'input_csv_path' must be provided via CLI or YAML.{RESET}")
+        parser.print_help()
         sys.exit(1)
     if OUTPUT_PATH is None:
         print(f"{RED}Error: 'output_hxms_path' must be provided via CLI or YAML.{RESET}")
+        parser.print_help()
         sys.exit(1)
 
     if INPUT_PATH is None or not os.path.isfile(INPUT_PATH):
@@ -111,6 +113,7 @@ def main():
     if FLAGS_PATH:
         if not os.path.isfile(FLAGS_PATH):
             print(f"{RED}Error: The table file '{FLAGS_PATH}' does not exist! Please correct it and run again.{RESET}")
+            parser.print_help()
             sys.exit(1)
     if PEPTIDE_LIST_PATH:
         if not os.path.isfile(PEPTIDE_LIST_PATH):
@@ -118,63 +121,75 @@ def main():
             sys.exit(1)
 
     if FLAGS_PATH:
-        parser = FlagsParser(FLAGS_PATH)
-        flags = parser.parse()
+        parser_flags = FlagsParser(FLAGS_PATH)
+        flags = parser_flags.parse()
 
         protein_name_state_info = flags['protein_name_states']
         if protein_name_state_info is None:
             print("You must have a protein name and state in your flags. Example: [['Protein1' 'State1'],['Protein1' 'State2'],['Protein2' 'State3']]")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         try:
             if len(protein_name_state_info[0]) != 2:
                 print("You must have a protein name and state in your flags. Example: ['Protein' 'State']")
-                exit()
+                parser.print_help()
+                sys.exit(1)
         except:
             print("You must have a protein name and state in your flags. Example: ['Protein' 'State']")
-            exit()
+            parser.print_help()
+            sys.exit(1)
 
         protein_sequence_info = flags['protein_sequence']
         if protein_sequence_info is None:
             print("You must have a protein sequence in your flags. Example: ['AAGWDGA']")
-            exit()
+            parser.print_help()
+            sys.exit(1)
 
         d20_saturation = flags['d20_saturation']
         if d20_saturation is None:
             print("You must have a d20_saturation in your flags. Example: 0.6")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         try:
             d20_saturation = float(d20_saturation)
             if d20_saturation > 1 or d20_saturation < 0:
                 print("Your d20_saturation must be a float between 0 and 1 inclusive. Example: 0.6")
-                exit()
+                parser.print_help()
+                sys.exit(1)
         except:
             print("Your d20_saturation must be a float. Example: 0.6")
-            exit()
+            parser.print_help()
+            sys.exit(1)
 
         temp = flags['temp']
         if temp is None:
             print("You must have a temp (in K) in your flags. Example: 293.5")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         try:
             temp = float(temp)
         except:
             print("You must have a temp (in K) in your flags that is an int or float. Example: 293.5")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         ph = flags['ph']
         if ph is None:
             print("You must have a ph in your flags. Example: 7.2")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         try:
             ph = float(ph)
         except:
             print("You must have a ph in your flags that is an int or float. Example: 7.2")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         file_type = flags['file_type']
         if len(flags['protein_sequence']) == 1:
             flags['protein_sequence'] = flags['protein_sequence'][0]
         if file_type is None:
             print("You must choose a file type!")
-            exit()
+            parser.print_help()
+            sys.exit(1)
 
 
     else:
@@ -187,25 +202,32 @@ def main():
         file_type = args.file_type or config.get("file_type")
         if saturation is None:
             print("You must provide a saturation value!")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         if ph is None:
             print("You must provide a ph value!")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         if temperature is None:
             print("You must provide a temperature value!")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         if protein_name is None:
             print("You must provide a protein_name value!")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         if protein_state is None:
             print("You must provide a protein_state value!")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         if protein_sequence is None:
             print("You must provide a protein_sequence value!")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         if file_type is None:
             print("You must provide a file_type value!")
-            exit()
+            parser.print_help()
+            sys.exit(1)
         flags = {
             'protein_name_states': [protein_name + " " + protein_state],
             'protein_sequence': protein_sequence,
