@@ -55,6 +55,7 @@ pip install numba
 pip install pyopenms
 pip install hdxrate
 pip install rich-argparse
+pip install PyYAML
 ```
 
 ### Running the website locally via Conda
